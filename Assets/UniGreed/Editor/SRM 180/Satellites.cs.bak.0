@@ -1,0 +1,184 @@
+using System;
+using System.IO;
+using System.Collections.Generic;
+using System.Text;
+using System.Linq;
+
+public class Satellites
+{
+    const float diameter = 12800;
+    const float radius = diameter / 2;
+    public List<Vector3> rocketPositions, satellitePositions;
+
+    public void Parse(string[] rockets, string[] satellites)
+    {
+        rocketPositions = new List<Vector3>();
+        foreach (var rocket in rockets)
+        {
+            var s = rocket.Split();
+            rocketPositions.Add(Vector3.FromSphericalCoordinates(Util.DegreeToRadian(double.Parse(s [0])), Util.DegreeToRadian(double.Parse(s [1])), radius + 400));
+        }
+        
+        satellitePositions = new List<Vector3>();
+        foreach (var satellite in satellites)
+        {
+            var s = satellite.Split();
+            satellitePositions.Add(Vector3.FromSphericalCoordinates(Util.DegreeToRadian(double.Parse(s [0])), Util.DegreeToRadian(double.Parse(s [1])), radius + double.Parse(s [2])));
+        }
+    }
+
+    public int[] detectable(string[] rockets, string[] satellites)
+    {
+        Parse(rockets, satellites);
+
+        var res = new List<int>();
+        for (int i = 0; i < rocketPositions.Count; i++)
+        {
+            var r = rocketPositions [i];
+            int numValid = 0;
+            foreach (var s in satellitePositions)
+            {
+                if (Util.LinePointDistance(s, r, Vector3.Zero, true) > radius)
+                {
+                    numValid++;
+                    if (numValid >= 3)
+                    {
+                        res.Add(i);
+                        break;
+                    }
+                }
+            }
+        }
+        return res.ToArray();
+    }
+
+    public struct Vector3
+    {
+        public double x, y, z;
+        public static readonly Vector3 Zero = new Vector3();
+        
+        public Vector3(double x, double y, double z)
+        {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+        
+        public double Norm()
+        {
+            return Math.Sqrt(Sqr());
+        }
+        
+        public double Sqr()
+        {
+            return x * x + y * y + z * z;
+        }
+        
+        public static Vector3 FromSphericalCoordinates(double lat, double lng, double alt)
+        {
+            return new Vector3(Math.Sin(lng) * Math.Cos(lat), Math.Sin(lat), Math.Cos(lng) * Math.Cos(lat)) * alt;
+        }
+        
+        public static Vector3 operator+(Vector3 lhs, Vector3 rhs)
+        {
+            return new Vector3(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
+        }
+
+        public static Vector3 operator-(Vector3 v)
+        {
+            return new Vector3(-v.x, -v.y, -v.z);
+        }
+
+        public static Vector3 operator-(Vector3 lhs, Vector3 rhs)
+        {
+            return lhs + -rhs;
+        }
+        
+        public static Vector3 operator*(Vector3 lhs, double rhs)
+        {
+            return new Vector3(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs);
+        }
+        
+        public static bool operator==(Vector3 lhs, Vector3 rhs)
+        {
+            return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
+        }
+        
+        public static bool operator!=(Vector3 lhs, Vector3 rhs)
+        {
+            return !(lhs == rhs);
+        }
+        
+        public override bool Equals(object obj)
+        {
+            if (obj == null)
+                return false;
+            var v = (Vector3)obj;
+            return this == v;
+        }
+        
+        public override int GetHashCode()
+        {
+            return x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode();
+        }
+        
+        public static double Dot(Vector3 lhs, Vector3 rhs)
+        {
+            return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
+        }
+        
+        public static Vector3 Cross(Vector3 lhs, Vector3 rhs)
+        {
+            return new Vector3(lhs.y * rhs.z - lhs.z * rhs.y, lhs.z * rhs.x - lhs.x * rhs.z, lhs.x * rhs.y - lhs.y * rhs.x);
+        }
+        
+        public static double Distance(Vector3 lhs, Vector3 rhs)
+        {
+            return (rhs - lhs).Norm();
+        }
+        
+        public override string ToString()
+        {
+            return string.Format("[Vector3]:" + x + "," + y + "," + z);
+        }
+    }
+
+    public class Util
+    {
+        public static double DegreeToRadian(double degree)
+        {
+            return degree * Math.PI / 180;
+        }
+        
+        public static double LinePointDistance(Vector3 A, Vector3 B, Vector3 C, bool isSegment)
+        {
+            if (A == B)
+            {
+                if (isSegment)
+                    return Vector3.Distance(A, C);
+                throw new ArithmeticException();
+            }
+            double dist = Cross(A, B, C) / Vector3.Distance(A, B);
+            if (isSegment)
+            {
+                double dot1 = Dot(A, B, C);
+                if (dot1 > 0)
+                    return Vector3.Distance(B, C);
+                double dot2 = Dot(B, A, C);
+                if (dot2 > 0)
+                    return Vector3.Distance(A, C);
+            }
+            return Math.Abs(dist);
+        }
+        
+        public static double Cross(Vector3 A, Vector3 B, Vector3 C)
+        {
+            return Vector3.Cross(B - A, C - A).Norm();
+        }
+        
+        public static double Dot(Vector3 A, Vector3 B, Vector3 C)
+        {
+            return Vector3.Dot(B - A, C - B);
+        }
+    }
+}

@@ -1,0 +1,11 @@
+*.csproj
+*.unityproj
+*.sln
+*.conf~
+*.cs.bak.*
+*.html
+*.html.meta
+*.sample
+*.sample.meta
+Library
+Temp
