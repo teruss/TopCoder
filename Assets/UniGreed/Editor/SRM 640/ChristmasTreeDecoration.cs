@@ -2,71 +2,47 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 public class ChristmasTreeDecoration
 {
-    public int solve(int[] col, int[] x, int[] y)
-    {
-        int ret = 0;
-        var uf = new UF();
-        for (int i=0; i<x.Length; i++)
-            if (col [x [i] - 1] != col [y [i] - 1])
-                uf.unite(x [i] - 1, y [i] - 1);
-        for (int i=0; i<col.Length; i++)
-            if (uf [i] == i)
-                ret++;
-        return ret - 1;
-    }
+	public class UnionFind
+	{
+		int[] parent;
 
-    public class UF
-    {
-        const int ufmax = 152;
-        int[] ufpar = new int[ufmax];
-        int[] ufrank = new int[ufmax];
-        int[] ufcnt = new int[ufmax];
-        public UF()
-        {
-            init();
-        }
-        void init()
-        {
-            for (int i=0; i<ufmax; i++)
-            {
-                ufpar [i] = i;
-                ufrank [i] = 0;
-                ufcnt [i] = 1;
-            }
-        }
-        int find(int x)
-        {
-            return (ufpar [x] == x) ? (x) : (ufpar [x] = find(ufpar [x]));
-        }
-        public int this [int x]
-        {
-            get{ return find(x);}
-        }
-        int count(int x)
-        {
-            return ufcnt [find(x)];
-        }
-        public void unite(int x, int y)
-        {
-            x = find(x);
-            y = find(y);
-            if (x == y)
-                return;
-            if (ufrank [x] < ufrank [y])
-            {
-                ufpar [x] = y;
-                ufcnt [y] += ufcnt [x];
-            } else
-            {
-                ufpar [y] = x;
-                ufcnt [x] += ufcnt [y];
-                if (ufrank [x] == ufrank [y])
-                    ufrank [x]++;
-            }
-        }
-    }
+		public UnionFind (int n)
+		{
+			parent = Enumerable.Range (0, n).ToArray ();
+		}
+
+		public int GetParent (int x)
+		{
+			if (x != parent [x])
+				return parent [x] = GetParent (parent [x]);
+			return x;
+		}
+
+		public void Unite (int u, int v)
+		{
+			parent [GetParent (u)] = v;
+		}
+	}
+
+	public int solve (int[] col, int[] x, int[] y)
+	{
+		var edges = x.Zip (y, (i, j) => new { cost = col [i - 1] == col [j - 1] ? 1 : 0, u = i - 1, v = j - 1});
+
+		var uf = new UnionFind (col.Length);
+
+		int total = 0;
+		foreach (var edge in edges.OrderBy(edge => edge.cost)) {
+			if (uf.GetParent (edge.u) != uf.GetParent (edge.v)) {
+				uf.Unite (edge.u, edge.v);
+				total += edge.cost;
+			}
+		}
+		
+		return total;
+	}
+
 }
-
